@@ -1,6 +1,3 @@
-use Rust_3D_Rasterizer::math::vec3::Vec3F;
-use Rust_3D_Rasterizer::vector::Vec3F;
-
 pub struct Renderer {
     width: u32,
     height: u32,
@@ -25,12 +22,12 @@ impl Renderer {
         }
 
         // Define a 3D triangle
-        let v1 = Vec3F::new(-1.0, -1.0, -5.0);
-        let v2 = Vec3F::new(1.0, -1.0, -5.0);
-        let v3 = Vec3F::new(0.0, 1.0, -5.0);
+        //let v1 = Vec3F::new(-1.0, -1.0, -5.0);
+        //let v2 = Vec3F::new(1.0, -1.0, -5.0);
+        //let v3 = Vec3F::new(0.0, 1.0, -5.0);
 
         // Project to screen coordinates
-        let p1 = project_to_screen(v1, camera_pos, self.width, self.height);
+        //let p1 = project_to_screen(v1, camera_pos, self.width, self.height);
         self.clear(0xFF000000);
 
         // Draw simple lines
@@ -40,9 +37,9 @@ impl Renderer {
         // TODO -> This is where the triangle rasterization will go
     }
 
-    pub fn project_to_screen(&self, world_point: Vec3F, camera_pos: Vec3F) -> Self {
+    //pub fn project_to_screen(&self, world_point: Vec3F, camera_pos: Vec3F) -> Self {
 
-    }
+    //}
     // Bresenhams line algorithmn
     pub fn draw_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, color: u32) {
         let dx= (x1 - x0).abs();
