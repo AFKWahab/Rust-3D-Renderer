@@ -1,1 +1,0 @@
-D:\RustProjects\Rust-3D-Rasterizer\target\debug\Rust-3D-Rasterizer.exe: D:\RustProjects\Rust-3D-Rasterizer\src\lib.rs D:\RustProjects\Rust-3D-Rasterizer\src\main.rs D:\RustProjects\Rust-3D-Rasterizer\src\renderer.rs
