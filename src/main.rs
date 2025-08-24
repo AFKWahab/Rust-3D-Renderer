@@ -1,6 +1,3 @@
-mod renderer;
-use renderer::Renderer;
-
 use windows::{
     core::*,
     Win32::Foundation::*,
@@ -9,6 +6,7 @@ use windows::{
     Win32::UI::WindowsAndMessaging::*,
 };
 use windows::Win32::Graphics::Gdi::{GetDC, ReleaseDC, SetDIBitsToDevice, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS};
+use Rust_3D_Rasterizer::renderer::Renderer;
 
 struct WindowData {
     renderer: Renderer

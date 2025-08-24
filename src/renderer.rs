@@ -1,3 +1,5 @@
+use crate::math::{Mat4x4, Vec2f, Vec3f};
+
 pub struct Renderer {
     width: u32,
     height: u32,
@@ -13,28 +15,78 @@ impl Renderer {
         }
     }
 
+    pub fn project_to_screen(&self, world_point: &Vec3f, camera_matrix: &Mat4x4) -> Option<Vec2f> {
+        // Step 1: Transform world point to camera space
+        let camera_point = camera_matrix.inverse()?.multiply_point(&world_point);
+
+        // Step 2: Perspective projection (3D → 2D)
+        if camera_point.z <= 0.0 { return None; } // Behind camera
+        let screen_x = camera_point.x / camera_point.z;
+        let screen_y = camera_point.y / camera_point.z;
+
+        // Step 3: Convert to pixel coordinates
+        let pixel_x = ((screen_x + 1.0) * 0.5 * self.width as f32) as i32;
+        let pixel_y = ((1.0 - screen_y) * 0.5 * self.height as f32) as i32;
+
+        Some(Vec2f::new(pixel_x as f32, pixel_y as f32))
+    }
+
     // We do &mut self, because wew ant to borrow the Renderer, but we also modify the framebuffer, so we need mutable access
     pub fn render_frame(&mut self) {
-        for pixel in &mut self.framebuffer {
-            // We do * in front of pixel because pixel is a reference to &mut u32, which points to a location in memory
-            // *pixel is derefencing - it accesses the actual value at that location, we need to dereference to assign a new value
-            *pixel = 0xFF0000FF;
-        }
-
-        // Define a 3D triangle
-        //let v1 = Vec3F::new(-1.0, -1.0, -5.0);
-        //let v2 = Vec3F::new(1.0, -1.0, -5.0);
-        //let v3 = Vec3F::new(0.0, 1.0, -5.0);
-
-        // Project to screen coordinates
-        //let p1 = project_to_screen(v1, camera_pos, self.width, self.height);
         self.clear(0xFF000000);
 
-        // Draw simple lines
-        self.draw_line(100, 100, 200, 100, 0xFF00FF00);
-        self.draw_line(200, 100, 150, 200, 0xFF00FF00);
-        self.draw_line(150, 200, 100, 100, 0xFF00FF00);
-        // TODO -> This is where the triangle rasterization will go
+        // Create a camera
+        let camera = Mat4x4::look_at(
+            Vec3f::new(0.0, 2.0, 5.0),   // Camera position
+            Vec3f::new(0.0, 0.0, 0.0),   // Look at origin
+            Vec3f::new(0.0, 1.0, 0.0)    // Up vector
+        );
+
+        // Define a COMPLETE 3D cube (8 vertices)
+        let cube_vertices = [
+            // Front face
+            Vec3f::new(-1.0, -1.0,  1.0), // 0: bottom-left-front
+            Vec3f::new( 1.0, -1.0,  1.0), // 1: bottom-right-front
+            Vec3f::new( 1.0,  1.0,  1.0), // 2: top-right-front
+            Vec3f::new(-1.0,  1.0,  1.0), // 3: top-left-front
+            // Back face
+            Vec3f::new(-1.0, -1.0, -1.0), // 4: bottom-left-back
+            Vec3f::new( 1.0, -1.0, -1.0), // 5: bottom-right-back
+            Vec3f::new( 1.0,  1.0, -1.0), // 6: top-right-back
+            Vec3f::new(-1.0,  1.0, -1.0), // 7: top-left-back
+        ];
+
+        // Project all vertices to screen coordinates
+        let mut screen_vertices = Vec::new();
+        for vertex in &cube_vertices {
+            if let Some(screen_pos) = self.project_to_screen(vertex, &camera) {
+                screen_vertices.push(screen_pos);
+            } else {
+                return; // Skip if any vertex is behind camera
+            }
+        }
+
+        // Draw the cube edges (12 edges total)
+        let edges = [
+            // Front face edges
+            (0, 1), (1, 2), (2, 3), (3, 0),
+            // Back face edges
+            (4, 5), (5, 6), (6, 7), (7, 4),
+            // Connecting front to back
+            (0, 4), (1, 5), (2, 6), (3, 7),
+        ];
+
+        // Draw lines between connected vertices
+        for (start, end) in &edges {
+            let start_pos = &screen_vertices[*start];
+            let end_pos = &screen_vertices[*end];
+
+            self.draw_line(
+                start_pos.x as i32, start_pos.y as i32,
+                end_pos.x as i32, end_pos.y as i32,
+                0xFF00FF00 // Green lines
+            );
+        }
     }
 
     //pub fn project_to_screen(&self, world_point: Vec3F, camera_pos: Vec3F) -> Self {

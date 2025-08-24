@@ -1,3 +1,7 @@
+use std::mem::zeroed;
+use crate::math::vec3::Vec3f;
+use crate::math::vec4::Vec4f;
+
 pub struct Mat4x4 {
     // Store as 16 f32 values
     pub m: [f32; 16]
@@ -139,10 +143,182 @@ impl Mat4x4 {
         }
         Some(Mat4x4::new(result))
     }
+
+    ///
+    /// The translation matrix moves (translates) points from one position to another.
+    /// What this means is that we can ask it to "move this point 5 units right, 3 units up, 2 units forward
+    /// But this translation matrix in itself, don't do much, all we need it for is to initialize it, and then multiply to translate.
+    /// So it can move objects, but also the camera etc.
+    ///
+    pub fn translation(x: f32, y: f32, z: f32) -> Mat4x4 {
+        Mat4x4::new([
+            1.0, 0.0, 0.0, x,
+            0.0, 1.0, 0.0, y,
+            0.0, 0.0, 1.0, z,
+            0.0, 0.0, 0.0, 1.0,
+        ])
+    }
+
+
+    ///
+    /// X-axis rotation (pitch), this rotates in the Y Z plane.
+    /// Generally the math here says that the X row stays the same
+    /// The Y row: Y = Y*cos - Z*sin
+    /// The Z row: Z = Y*sin + Z*cos
+    /// W row is always [0.0.0.1]
+    pub fn rotation_x(angle: f32) -> Mat4x4 {
+        let cos_a = angle.cos();
+        let sin_a = angle.sin();
+
+        Mat4x4::new([
+            1.0,   0.0,    0.0,   0.0,  // X row: X stays the same
+            0.0,  cos_a, -sin_a, 0.0,  // Y row: Y = Y*cos - Z*sin
+            0.0,  sin_a,  cos_a, 0.0,  // Z row: Z = Y*sin + Z*cos
+            0.0,   0.0,    0.0,  1.0,  // W row: always [0,0,0,1]
+        ])
+    }
+
+    ///
+    /// Y-axis rotation (yaw), this rotates in the X Z plane
+    /// Generally the math here says that
+    /// The X row: X = X*cos + Z*sin
+    /// The Z row: Z = -X*sin + Z*cos
+    /// W row: always [0,0,0,1]
+    pub fn rotation_y(angle: f32) -> Mat4x4 {
+        let cos_a = angle.cos();
+        let sin_a = angle.sin();
+
+        Mat4x4::new([
+            cos_a, 0.0,  sin_a, 0.0,  // X row: X = X*cos + Z*sin
+            0.0,  1.0,   0.0,  0.0,  // Y row: Y stays the same
+            -sin_a, 0.0,  cos_a, 0.0,  // Z row: Z = -X*sin + Z*cos
+            0.0,  0.0,   0.0,  1.0,  // W row: always [0,0,0,1]
+        ])
+    }
+
+    ///
+    /// Z-axis rotation (roll), this rotates in the X Y plane
+    /// Generally the math here says that
+    /// The X row: X = X*cos + Y*sin
+    /// The Y row: Z = X*sin + Y*cos
+    /// W row: always [0,0,0,1]
+    pub fn rotation_z(angle: f32) -> Mat4x4 {
+        let cos_a = angle.cos();
+        let sin_a = angle.sin();
+
+        Mat4x4::new([
+            cos_a, -sin_a, 0.0, 0.0,  // X row: X = X*cos - Y*sin
+            sin_a,  cos_a, 0.0, 0.0,  // Y row: Y = X*sin + Y*cos
+            0.0,    0.0,  1.0, 0.0,  // Z row: Z stays the same
+            0.0,    0.0,  0.0, 1.0,  // W row: always [0,0,0,1]
+        ])
+    }
+
+    ///
+    /// The point of scaling is to multiply each coordinate by a scale factor.
+    ///
+    pub fn scale(x: f32, y: f32, z: f32) -> Mat4x4 {
+        Mat4x4::new([
+            x, 0.0, 0.0, 0.0,
+            0.0, y, 0.0, 0.0,
+            0.0, 0.0, z, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        ])
+    }
+
+    ///
+    /// This transforms a position in 3D space.
+    /// Affected by translation (gets moved)
+    /// Affected by rotation (gets rotated)
+    /// Affected by scaling (gets scaled)
+    /// Uses w=1 in homogenous coordinates
+    /// This is used for vertex positions of a 3D model, camera position, light positions, any "where is this thing" coordinate
+    ///
+    pub fn multiply_point(&self, point: &Vec3f) -> Vec3f {
+        // Create a Vec4f out of the Vec3f, using helper method
+        let vector_4d = Vec4f::from_point(point);
+
+        let mut result = Vec4f::new(0.0, 0.0, 0.0, 0.0);
+
+        for row in 0..4 {
+            let mut sum = 0.0;
+
+            // Multiply row by vector: row[0]*vec.x + row[1]*vec.y + row[2]*vec.z + row[3]*vec.w
+            sum += self.get(row, 0) * vector_4d.x;
+            sum += self.get(row, 1) * vector_4d.y;
+            sum += self.get(row, 2) * vector_4d.z;
+            sum += self.get(row, 3) * vector_4d.w;
+
+            // Store result in appropriate component
+            match row {
+                0 => result.x = sum,
+                1 => result.y = sum,
+                2 => result.z = sum,
+                3 => result.w = sum,
+                _ => unreachable!(),
+            }
+        }
+
+        result.to_Vec3f()  // Convert back to Vec3f
+    }
+
+    ///
+    /// Transforms a direction in 3D space
+    /// Not affected by translation (directions don't have positions)
+    /// Affected by rotation (gets rotated)
+    /// Affected by scaling (gets scaled)
+    /// Uses w=0 in homogeneous coordinates
+    /// This is used for surface normals, light directions, velocity vectors, any "which direction" vector
+    ///
+    pub fn multiply_vector(&self, vector: &Vec3f) -> Vec3f {
+        // Create a Vec4f out of the Vec3f, using helper method (w=0)
+        let vector_4d = Vec4f::from_vector(vector);
+
+        let mut result = Vec4f::new(0.0, 0.0, 0.0, 0.0);
+
+        for row in 0..4 {
+            let mut sum = 0.0;
+
+            // Multiply row by vector: row[0]*vec.x + row[1]*vec.y + row[2]*vec.z + row[3]*vec.w
+            sum += self.get(row, 0) * vector_4d.x;
+            sum += self.get(row, 1) * vector_4d.y;
+            sum += self.get(row, 2) * vector_4d.z;
+            sum += self.get(row, 3) * vector_4d.w;  // This will be 0, so translation is ignored!
+
+            // Store result in appropriate component
+            match row {
+                0 => result.x = sum,
+                1 => result.y = sum,
+                2 => result.z = sum,
+                3 => result.w = sum,
+                _ => unreachable!(),
+            }
+        }
+
+        result.to_Vec3f()  // Convert back to Vec3f
+    }
+
+    pub fn look_at(eye: Vec3f, target: Vec3f, up: Vec3f) -> Mat4x4 {
+        // Step 1: Calculate forward vector (direction camera is looking)
+        let forward = (target - eye).normalize();
+
+        // Step 2: Calculate right vector (camera's right direction)
+        let right = forward.cross(&up).normalize();
+
+        // Step 3: Calculate actual up vector (camera's up direction)
+        let camera_up = right.cross(&forward);
+
+        // Step 4: Create view matrix
+        // Note: Forward is negated because camera looks down -Z axis by convention
+        Mat4x4::new([
+            right.x,     right.y,     right.z,     -right.dot(&eye),
+            camera_up.x, camera_up.y, camera_up.z, -camera_up.dot(&eye),
+            -forward.x,  -forward.y,  -forward.z,  forward.dot(&eye),
+            0.0,         0.0,         0.0,         1.0,
+        ])
+    }
 }
 
-
-// Add this to the bottom of your matrix.rs file
 
 #[cfg(test)]
 mod tests {
@@ -174,7 +350,6 @@ mod tests {
 
     #[test]
     fn test_simple_matrix_inverse() {
-        // Test with a simple 4x4 matrix we can verify by hand
         let matrix = Mat4x4::new([
             2.0, 0.0, 0.0, 0.0,
             0.0, 3.0, 0.0, 0.0,
@@ -196,8 +371,6 @@ mod tests {
 
     #[test]
     fn test_matrix_multiply_inverse_equals_identity() {
-        // Use a non‑singular matrix (det ≠ 0).
-        // This is your original matrix but with the last element changed from 1.0 → 2.0 (det = 3).
         let matrix = Mat4x4::new([
             1.0, 2.0, 0.0, 1.0,
             0.0, 1.0, 1.0, 2.0,
@@ -215,7 +388,7 @@ mod tests {
 
     #[test]
     fn test_inverse_multiply_matrix_equals_identity() {
-        // Test A^(-1) * A = I (should also work)
+        // Test A^(-1) * A = I
         let matrix = Mat4x4::new([
             2.0, 1.0, 0.0, 0.0,
             1.0, 2.0, 1.0, 0.0,
@@ -233,7 +406,7 @@ mod tests {
 
     #[test]
     fn test_singular_matrix() {
-        // Create a singular (non-invertible) matrix - all rows are the same
+        // Create a singular (non-invertible) matrix
         let singular_matrix = Mat4x4::new([
             1.0, 2.0, 3.0, 4.0,
             1.0, 2.0, 3.0, 4.0,  // Same as first row
