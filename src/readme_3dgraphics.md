@@ -39,3 +39,8 @@ Primitive Assembly groups vertices into triangles. The Rasterization stage deter
 
 Fragment processing calculates final pixel colors, applies textures, and performs depth testing
 
+
+
+
+# Project 3D vector into pixels
+https://www.scratchapixel.com/lessons/3d-basic-rendering/computing-pixel-coordinates-of-3d-point/mathematics-computing-2d-coordinates-of-3d-points.html
