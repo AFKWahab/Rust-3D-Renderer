@@ -32,3 +32,10 @@ https://learn.microsoft.com/en-us/windows/win32/winmsg/about-messages-and-messag
 
 
 # Pixel Rendering Documentation
+
+# TODO (Short & Long term)
+## Convert to Vulkan
+Right now i run with this structure:
+- CPU calculates pixels → Framebuffer in RAM → Win32 blits to screen
+But we would probably have to use VULKAN to have GPU access
+- CPU sends commands to GPU → GPU calculates pixels → GPU renders directly to screen
