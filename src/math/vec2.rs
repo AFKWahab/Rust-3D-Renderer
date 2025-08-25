@@ -1,5 +1,6 @@
 use std::ops::{Add, Sub, Mul, Div};
 
+#[derive(Copy, Clone)]
 pub struct Vec2f {
     pub x: f32,
     pub y: f32
