@@ -18,10 +18,11 @@ impl Vec3f {
 
     pub fn normalize(&self) -> Vec3f {
         let len = self.length();
-        let x = self.x / len;
-        let y = self.y / len;
-        let z = self.z / len;
-        Vec3f { x, y, z }
+        if len > 0.0 {
+            Vec3f { x: self.x / len, y: self.y / len, z: self.z / len }
+        } else {
+            *self
+        }
     }
 
     pub fn dot(&self, other: &Vec3f) -> f32 {
@@ -36,7 +37,32 @@ impl Vec3f {
         }
     }
 
+    /// Calculate surface normal for a triangle given three vertices
+    pub fn calculate_triangle_normal(v0: Vec3f, v1: Vec3f, v2: Vec3f) -> Vec3f {
+        let edge1 = v1 - v0;
+        let edge2 = v2 - v0;
+        edge1.cross(&edge2).normalize()
+    }
 
+    /// Zero vector
+    pub fn zero() -> Vec3f {
+        Vec3f::new(0.0, 0.0, 0.0)
+    }
+
+    /// Unit vector pointing up
+    pub fn up() -> Vec3f {
+        Vec3f::new(0.0, 1.0, 0.0)
+    }
+
+    /// Unit vector pointing forward (negative Z)
+    pub fn forward() -> Vec3f {
+        Vec3f::new(0.0, 0.0, -1.0)
+    }
+
+    /// Unit vector pointing right
+    pub fn right() -> Vec3f {
+        Vec3f::new(1.0, 0.0, 0.0)
+    }
 }
 
 impl Add<&Vec3f> for &Vec3f {
@@ -66,6 +92,7 @@ impl Div<f32> for &Vec3f {
         Vec3f::new(self.x / scalar, self.y / scalar, self.z / scalar)
     }
 }
+
 impl Add for Vec3f {
     type Output = Vec3f;
     fn add(self, other: Vec3f) -> Vec3f {
