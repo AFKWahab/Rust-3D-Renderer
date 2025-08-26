@@ -326,7 +326,7 @@ impl Mat4x4 {
         Mat4x4::new([
             right.x,     right.y,     right.z,     -right.dot(&eye),
             camera_up.x, camera_up.y, camera_up.z, -camera_up.dot(&eye),
-            -forward.x,  -forward.y,  -forward.z,  forward.dot(&eye),
+            -forward.x,  -forward.y,  -forward.z,  forward.dot(&eye),  // This row should make Z negative
             0.0,         0.0,         0.0,         1.0,
         ])
     }

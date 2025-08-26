@@ -99,11 +99,12 @@ impl Scene {
 
     fn render_3d_cube(&self, renderer: &mut Renderer) {
         println!("Rendering 3D cube...");
+        println!("Camera position: {:?}", self.camera.position);
+        println!("Camera target: {:?}", self.camera.target);
 
         let view_matrix = self.camera.get_view_matrix();
         let proj_matrix = self.camera.get_projection_matrix();
 
-        // Hard-coded simple cube
         let cube_vertices = [
             Vec3f::new(-0.5, -0.5,  0.5), // Front face
             Vec3f::new( 0.5, -0.5,  0.5),
@@ -115,31 +116,47 @@ impl Scene {
             Vec3f::new(-0.5,  0.5, -0.5),
         ];
 
-        // Transform to camera space and project
         let mut screen_vertices = Vec::new();
-        let mut camera_vertices = Vec::new();
+        let mut depths = Vec::new();
 
-        for vertex in &cube_vertices {
-            let camera_point = view_matrix.multiply_point(vertex);  // Fixed: removed .inverse()
+        for (i, vertex) in cube_vertices.iter().enumerate() {
+            // Step 1: Transform to camera space
+            let camera_point = view_matrix.multiply_point(vertex);
+            println!("Vertex {}: World {:?} -> Camera {:?}", i, vertex, camera_point);
 
-            if camera_point.z <= 0.0 {
-                println!("Vertex behind camera, skipping cube");
+            if camera_point.z >= 0.0 {  // In camera space, negative Z is in front
+                println!("Vertex {} behind camera, skipping cube", i);
                 return;
             }
 
-            if let Some(screen_pos) = self.project_to_screen(&camera_point, renderer) {
-                screen_vertices.push(screen_pos);
-                camera_vertices.push(camera_point);
-            } else {
-                println!("Projection failed, skipping cube");
+            // Step 2: Apply projection matrix
+            let projected_4d = proj_matrix.multiply_point_4d(&camera_point);
+
+            // Step 3: Perspective divide
+            if projected_4d.w == 0.0 {
+                println!("Invalid projection for vertex {}", i);
                 return;
             }
+
+            let ndc_x = projected_4d.x / projected_4d.w;
+            let ndc_y = projected_4d.y / projected_4d.w;
+            let ndc_z = projected_4d.z / projected_4d.w;
+
+            // Step 4: Convert to screen coordinates
+            let (width, height) = renderer.get_dimension();
+            let pixel_x = (ndc_x + 1.0) * 0.5 * width as f32;
+            let pixel_y = (1.0 - ndc_y) * 0.5 * height as f32;
+
+            println!("Vertex {} -> Screen ({}, {})", i, pixel_x, pixel_y);
+
+            screen_vertices.push(Vec2f::new(pixel_x, pixel_y));
+            depths.push(ndc_z);  // Use normalized depth for z-buffer
         }
 
-        // Draw just the front face for now
+        // Draw just the front face triangles for testing
         let triangles = [
-            (0, 1, 2, 0xFFFF0000), // Bright red
-            (2, 3, 0, 0xFF0000FF), // Bright blue
+            (0, 1, 2, 0xFFFF0000), // Red triangle
+            (2, 3, 0, 0xFF0000FF), // Blue triangle
         ];
 
         for (i0, i1, i2, color) in &triangles {
@@ -147,9 +164,9 @@ impl Scene {
             let v1 = screen_vertices[*i1];
             let v2 = screen_vertices[*i2];
 
-            let z0 = camera_vertices[*i0].z;
-            let z1 = camera_vertices[*i1].z;
-            let z2 = camera_vertices[*i2].z;
+            let z0 = depths[*i0];
+            let z1 = depths[*i1];
+            let z2 = depths[*i2];
 
             println!("Drawing triangle: {:?} {:?} {:?} with color {:08X}", v0, v1, v2, color);
             renderer.draw_triangle(v0, v1, v2, z0, z1, z2, *color);
