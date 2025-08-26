@@ -72,7 +72,7 @@ impl Mesh {
         // Add triangles with different colors for each face
         let triangles = [
             // Front face (green)
-            Triangle::new(0, 1, 2, 0x00FF00),
+            Triangle::new(0, 1, 2, 0xFFFF0000),
             Triangle::new(2, 3, 0, 0x00FF00),
 
             // Back face (red)

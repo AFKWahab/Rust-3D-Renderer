@@ -1,6 +1,6 @@
 use std::ops::{Add, Sub, Mul, Div};
 
-#[derive(Copy, Clone)]  // Added Copy and Clone traits
+#[derive(Copy, Clone, Debug)]  // Added Copy and Clone traits
 pub struct Vec2f {
     pub x: f32,
     pub y: f32
