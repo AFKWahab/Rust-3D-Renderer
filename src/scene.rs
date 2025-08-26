@@ -154,21 +154,27 @@ impl Scene {
 
     fn project_to_screen(&self, camera_point: &Vec3f, renderer: &Renderer) -> Option<Vec2f> {
         if camera_point.z <= 0.0 {
-            println!("Point behind camera: z = {}", camera_point.z);
             return None;
         }
 
-        // Simple perspective projection
-        let screen_x = camera_point.x / camera_point.z;
-        let screen_y = camera_point.y / camera_point.z;
+        // Apply perspective projection matrix
+        let proj_matrix = self.camera.get_projection_matrix();
+        let projected = proj_matrix.multiply_point(camera_point);
 
+        // Perform perspective divide
+        if projected.w == 0.0 {
+            return None;
+        }
+
+        let ndc_x = projected.x / projected.w;
+        let ndc_y = projected.y / projected.w;
+
+        // Convert to screen coordinates
         let (width, height) = renderer.get_dimension();
-        let pixel_x = ((screen_x + 1.0) * 0.5 * width as f32) as i32;
-        let pixel_y = ((1.0 - screen_y) * 0.5 * height as f32) as i32;
+        let pixel_x = ((ndc_x + 1.0) * 0.5 * width as f32);
+        let pixel_y = ((1.0 - ndc_y) * 0.5 * height as f32);
 
-        println!("Screen projection: ({}, {}) -> pixel ({}, {})", screen_x, screen_y, pixel_x, pixel_y);
-
-        Some(Vec2f::new(pixel_x as f32, pixel_y as f32))
+        Some(Vec2f::new(pixel_x, pixel_y))
     }
 
     // Utility methods
