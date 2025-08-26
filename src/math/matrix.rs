@@ -330,4 +330,27 @@ impl Mat4x4 {
             0.0,         0.0,         0.0,         1.0,
         ])
     }
+
+    pub fn multiply_point_4d(&self, point: &Vec3f) -> Vec4f {
+        let vector_4d = Vec4f::from_point(point);
+        let mut result = Vec4f::new(0.0, 0.0, 0.0, 0.0);
+
+        for row in 0..4 {
+            let mut sum = 0.0;
+            sum += self.get(row, 0) * vector_4d.x;
+            sum += self.get(row, 1) * vector_4d.y;
+            sum += self.get(row, 2) * vector_4d.z;
+            sum += self.get(row, 3) * vector_4d.w;
+
+            match row {
+                0 => result.x = sum,
+                1 => result.y = sum,
+                2 => result.z = sum,
+                3 => result.w = sum,
+                _ => unreachable!(),
+            }
+        }
+
+        result
+    }
 }

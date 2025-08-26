@@ -1,4 +1,4 @@
-use crate::math::{Mat4x4, Vec2f, Vec3f};
+use crate::math::{Mat4x4, Vec2f, Vec3f, Vec4f};
 use crate::mesh::{Mesh, Triangle};
 use crate::camera::Camera;
 use crate::lighting::LightingSystem;
@@ -63,8 +63,8 @@ impl Scene {
         Self {
             game_objects_count: 0,
             camera: Camera::look_at(
-                Vec3f::new(0.0, 0.0, 3.0),  // Closer to origin
-                Vec3f::new(0.0, 0.0, 0.0),  // Looking at origin
+                Vec3f::new(0.0, 0.0, 5.0),  // Move camera further back
+                Vec3f::new(0.0, 0.0, 0.0),
                 Vec3f::new(0.0, 1.0, 0.0),
             ),
             lighting,
@@ -101,6 +101,7 @@ impl Scene {
         println!("Rendering 3D cube...");
 
         let view_matrix = self.camera.get_view_matrix();
+        let proj_matrix = self.camera.get_projection_matrix();
 
         // Hard-coded simple cube
         let cube_vertices = [
@@ -119,15 +120,18 @@ impl Scene {
         let mut camera_vertices = Vec::new();
 
         for vertex in &cube_vertices {
-            let camera_point = view_matrix.multiply_point(vertex);
-            println!("World: {:?} -> Camera: {:?}", vertex, camera_point);
+            let camera_point = view_matrix.multiply_point(vertex);  // Fixed: removed .inverse()
+
+            if camera_point.z <= 0.0 {
+                println!("Vertex behind camera, skipping cube");
+                return;
+            }
 
             if let Some(screen_pos) = self.project_to_screen(&camera_point, renderer) {
-                println!("Projected to screen: {:?}", screen_pos);
                 screen_vertices.push(screen_pos);
                 camera_vertices.push(camera_point);
             } else {
-                println!("Vertex behind camera, skipping cube");
+                println!("Projection failed, skipping cube");
                 return;
             }
         }
@@ -157,22 +161,22 @@ impl Scene {
             return None;
         }
 
-        // Apply perspective projection matrix
+        // Apply perspective projection matrix using the new method
         let proj_matrix = self.camera.get_projection_matrix();
-        let projected = proj_matrix.multiply_point(camera_point);
+        let projected_4d = proj_matrix.multiply_point_4d(camera_point);
 
-        // Perform perspective divide
-        if projected.w == 0.0 {
+        // Perspective divide
+        if projected_4d.w == 0.0 {
             return None;
         }
 
-        let ndc_x = projected.x / projected.w;
-        let ndc_y = projected.y / projected.w;
+        let ndc_x = projected_4d.x / projected_4d.w;
+        let ndc_y = projected_4d.y / projected_4d.w;
 
         // Convert to screen coordinates
         let (width, height) = renderer.get_dimension();
-        let pixel_x = ((ndc_x + 1.0) * 0.5 * width as f32);
-        let pixel_y = ((1.0 - ndc_y) * 0.5 * height as f32);
+        let pixel_x = (ndc_x + 1.0) * 0.5 * width as f32;
+        let pixel_y = (1.0 - ndc_y) * 0.5 * height as f32;
 
         Some(Vec2f::new(pixel_x, pixel_y))
     }
