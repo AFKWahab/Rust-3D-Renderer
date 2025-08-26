@@ -59,7 +59,6 @@ impl Renderer {
                 if u >= 0.0 && v >= 0.0 && w >= 0.0 {
                     // Interpolate depth using barycentric coordinates
                     let depth = u * z0 + v * z1 + w * z2;
-
                     // Z-buffer test and pixel drawing
                     let pixel_index = (y * self.width as i32 + x) as usize;
                     if pixel_index < self.z_buffer.len() && depth < self.z_buffer[pixel_index] {

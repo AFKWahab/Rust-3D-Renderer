@@ -119,7 +119,7 @@ impl Scene {
         let mut camera_vertices = Vec::new();
 
         for vertex in &cube_vertices {
-            let camera_point = view_matrix.inverse().unwrap().multiply_point(vertex);
+            let camera_point = view_matrix.multiply_point(vertex);
             println!("World: {:?} -> Camera: {:?}", vertex, camera_point);
 
             if let Some(screen_pos) = self.project_to_screen(&camera_point, renderer) {
@@ -134,8 +134,8 @@ impl Scene {
 
         // Draw just the front face for now
         let triangles = [
-            (0, 1, 2, 0xFF0000), // Red triangle
-            (2, 3, 0, 0x00FF00), // Green triangle
+            (0, 1, 2, 0xFFFF0000), // Bright red
+            (2, 3, 0, 0xFF0000FF), // Bright blue
         ];
 
         for (i0, i1, i2, color) in &triangles {

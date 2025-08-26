@@ -69,31 +69,31 @@ impl Mesh {
             mesh.add_vertex(vertex);
         }
 
-        // Add triangles with different colors for each face
+        // Add triangles with different colors for each face - ALL with proper alpha channel (0xFF)
         let triangles = [
             // Front face (green)
-            Triangle::new(0, 1, 2, 0xFFFF0000),
-            Triangle::new(2, 3, 0, 0x00FF00),
+            Triangle::new(0, 1, 2, 0xFF00FF00), // Fixed: added FF alpha channel
+            Triangle::new(2, 3, 0, 0xFF00FF00), // Fixed: added FF alpha channel
 
             // Back face (red)
-            Triangle::new(4, 7, 6, 0xFF0000),
-            Triangle::new(6, 5, 4, 0xFF0000),
+            Triangle::new(4, 7, 6, 0xFFFF0000), // Fixed: added FF alpha channel
+            Triangle::new(6, 5, 4, 0xFFFF0000), // Fixed: added FF alpha channel
 
             // Left face (blue)
-            Triangle::new(4, 0, 3, 0x0000FF),
-            Triangle::new(3, 7, 4, 0x0000FF),
+            Triangle::new(4, 0, 3, 0xFF0000FF), // Fixed: added FF alpha channel
+            Triangle::new(3, 7, 4, 0xFF0000FF), // Fixed: added FF alpha channel
 
             // Right face (yellow)
-            Triangle::new(1, 5, 6, 0xFFFF00),
-            Triangle::new(6, 2, 1, 0xFFFF00),
+            Triangle::new(1, 5, 6, 0xFFFFFF00), // Fixed: added FF alpha channel
+            Triangle::new(6, 2, 1, 0xFFFFFF00), // Fixed: added FF alpha channel
 
             // Top face (magenta)
-            Triangle::new(3, 2, 6, 0xFF00FF),
-            Triangle::new(6, 7, 3, 0xFF00FF),
+            Triangle::new(3, 2, 6, 0xFFFF00FF), // Fixed: added FF alpha channel
+            Triangle::new(6, 7, 3, 0xFFFF00FF), // Fixed: added FF alpha channel
 
             // Bottom face (cyan)
-            Triangle::new(4, 5, 1, 0x00FFFF),
-            Triangle::new(1, 0, 4, 0x00FFFF),
+            Triangle::new(4, 5, 1, 0xFF00FFFF), // Fixed: added FF alpha channel
+            Triangle::new(1, 0, 4, 0xFF00FFFF), // Fixed: added FF alpha channel
         ];
 
         for triangle in triangles {
@@ -111,7 +111,7 @@ impl Mesh {
         mesh.add_vertex(Vec3f::new(-1.0, -1.0, 0.0)); // Bottom left
         mesh.add_vertex(Vec3f::new(1.0, -1.0, 0.0));  // Bottom right
 
-        mesh.add_triangle(Triangle::new(0, 1, 2, 0xFF0000));
+        mesh.add_triangle(Triangle::new(0, 1, 2, 0xFFFF0000)); // Fixed: added FF alpha channel
 
         mesh
     }
