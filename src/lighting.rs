@@ -38,6 +38,8 @@ impl Light {
         // Combine diffuse lighting with ambient
         let final_intensity = (intensity + ambient).min(1.0);
 
+        println!("Light intensity: {}, ambient: {}, final: {}", intensity, ambient, final_intensity);
+
         let lit_r = (light_r * final_intensity).min(255.0) as u32;
         let lit_g = (light_g * final_intensity).min(255.0) as u32;
         let lit_b = (light_b * final_intensity).min(255.0) as u32;
@@ -69,29 +71,14 @@ impl LightingSystem {
         }
 
         let mut total_intensity = 0.0;
-        let mut combined_color = Vec3f::new(0.0, 0.0, 0.0);
 
         // Accumulate lighting from all lights
         for light in &self.lights {
             let diffuse = light.calculate_diffuse(normal);
             total_intensity += diffuse;
-
-            // Accumulate color contributions
-            combined_color.x += light.color.x * diffuse;
-            combined_color.y += light.color.y * diffuse;
-            combined_color.z += light.color.z * diffuse;
         }
 
-        // Normalize combined color
-        if total_intensity > 0.0 {
-            combined_color.x /= total_intensity;
-            combined_color.y /= total_intensity;
-            combined_color.z /= total_intensity;
-        } else {
-            combined_color = Vec3f::new(1.0, 1.0, 1.0);
-        }
-
-        // Use the primary light for color calculation (simplified)
+        // Use the primary light for color calculation
         let primary_light = &self.lights[0];
         primary_light.apply_to_color(base_color, total_intensity, self.ambient_intensity)
     }
