@@ -55,11 +55,6 @@ pub struct Scene {
 
 impl Scene {
     pub fn new() -> Self {
-        let mut lighting = LightingSystem::new();
-        lighting.add_light(crate::lighting::Light::directional(
-            Vec3f::new(1.0, 1.0, 1.0).normalize()
-        ));
-
         Self {
             game_objects_count: 0,
             camera: Camera::look_at(
@@ -146,8 +141,8 @@ impl Scene {
 
         // Define triangles with their base colors (before lighting)
         let triangles = [
-            (0, 1, 2, 0xFF808080), // Front face - gray base color
-            (2, 3, 0, 0xFF808080), // Front face - gray base color
+            (0, 1, 2, 0xFFFFFFFF), // White base color
+            (2, 3, 0, 0xFFFFFFFF), // White base color
         ];
 
         for (i0, i1, i2, base_color) in &triangles {
