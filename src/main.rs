@@ -100,8 +100,8 @@ fn main() -> Result<()> {
         ));
 
         let window_data = Box::new(WindowData {
-            renderer,
-            scene,
+                renderer,
+                scene,
         });
 
         SetWindowLongPtrA(hwnd, GWLP_USERDATA, Box::into_raw(window_data) as isize);
