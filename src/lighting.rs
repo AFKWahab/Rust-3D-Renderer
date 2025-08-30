@@ -1,10 +1,19 @@
 use crate::math::Vec3f;
 
 #[derive(Copy, Clone)]
+pub enum LightType {
+    Directional,
+    Point,
+    Spot { inner_angle: f32, outer_angle: f32}
+}
+#[derive(Copy, Clone)]
 pub struct Light {
-    pub direction: Vec3f,
+    pub light_type: LightType,
+    pub position: Vec3f, // For point/spot lights
+    pub direction: Vec3f, // For directional/spot lights
     pub color: Vec3f,
     pub intensity: f32,
+    pub range: f32, // for point/spot lights
 }
 
 impl Light {
