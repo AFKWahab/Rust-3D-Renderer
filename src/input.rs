@@ -136,16 +136,20 @@ impl InputManager {
 
     // These methods you'll implement with your own logic
     pub fn get_mouse_delta(&mut self) -> Vec2f {
-        // TODO: Implement - should return mouse movement and reset internal delta
-        Vec2f::zero()
+        // scale by sensitivity and reset
+        let scaled = self.mouse_delta * self.mouse_sensitivity;
+        self.mouse_delta = Vec2f::zero();
+        scaled
     }
 
     pub fn get_delta_time(&self) -> f32 {
-        // TODO: Implement - return time since last frame
         self.delta_time
     }
 
     pub fn update(&mut self) {
-        // TODO: Implement - calculate delta time, handle any per-frame logic
+        // compute frame delta in seconds
+        let now = std::time::Instant::now();
+        self.delta_time = (now - self.last_frame_time).as_secs_f32();
+        self.last_frame_time = now;
     }
 }
