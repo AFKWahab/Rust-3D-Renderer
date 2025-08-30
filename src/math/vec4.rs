@@ -39,7 +39,7 @@ impl Vec4f {
         Vec4f::new(vec3.x, vec3.y, vec3.z, 0.0)
     }
 
-    pub fn to_Vec3f(&self) -> Vec3f {
+    pub fn to_vec3f(&self) -> Vec3f {
         if self.w != 0.0 && self.w != 1.0 {
             Vec3f::new(self.x / self.w, self.y / self.w, self.z / self.w)
         } else {
