@@ -39,7 +39,7 @@ fn main() -> Result<()> {
         let hwnd = CreateWindowExA(
             WINDOW_EX_STYLE::default(),
             window_class,
-            s!("3D Rasterizer with Lighting"),
+            s!("Adam Game Engine"),
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -59,17 +59,44 @@ fn main() -> Result<()> {
         let renderer = Renderer::new(800, 600);
         let mut scene = Scene::new();
 
-        // Add a cube to the scene
-        scene.add_cube_at(Vec3f::new(0.0, 0.0, 0.0));
+        // Add multiple cubes with different positions
+        scene.add_cube_at(Vec3f::new(-2.0, 0.0, 0.0));
+        scene.add_cube_at(Vec3f::new(2.0, 0.0, 0.0));
+        scene.add_cube_at(Vec3f::new(0.0, 2.0, -2.0));
 
-        // Add another cube to the side
-        scene.add_cube_at(Vec3f::new(3.0, 0.0, 0.0));
+        // Add multiple lights for dramatic effect
 
-        // Add a light from a different angle
-        scene.add_light(Light::new(
-            Vec3f::new(0.0, 0.0, -1.0),  // Light pointing straight at front face
-            Vec3f::new(1.0, 1.0, 1.0),
+        // Main directional light (key light)
+        scene.add_light(Light::directional(
+            Vec3f::new(-0.5, -1.0, -0.5), // Coming from upper left
+            Vec3f::new(1.0, 0.9, 0.8),    // Warm white
             0.8
+        ));
+
+        // Fill light (softer, cooler)
+        scene.add_light(Light::directional(
+            Vec3f::new(0.5, 0.0, -1.0),   // Coming from right
+            Vec3f::new(0.6, 0.7, 1.0),    // Cool blue
+            0.4
+        ));
+
+        // Point light for additional interest
+        scene.add_light(Light::point(
+            Vec3f::new(0.0, 4.0, 2.0),    // Above and behind
+            Vec3f::new(1.0, 0.5, 0.2),    // Orange
+            2.0,                          // Bright
+            10.0                          // Range
+        ));
+
+        // Spot light for dramatic shadows
+        scene.add_light(Light::spot(
+            Vec3f::new(-4.0, 3.0, 4.0),   // Position
+            Vec3f::new(1.0, -0.5, -1.0).normalize(), // Direction
+            Vec3f::new(0.9, 0.2, 0.9),    // Purple
+            3.0,                          // Intensity
+            15.0,                         // Range
+            std::f32::consts::PI / 6.0,   // Inner angle (30°)
+            std::f32::consts::PI / 4.0    // Outer angle (45°)
         ));
 
         let window_data = Box::new(WindowData {
@@ -82,7 +109,7 @@ fn main() -> Result<()> {
         // Message loop
         let mut msg = MSG::default();
         while GetMessageA(&mut msg, None, 0, 0).into() {
-            TranslateMessage(&msg);
+            let _ = TranslateMessage(&msg);
             DispatchMessageA(&msg);
         }
         Ok(())
@@ -132,7 +159,7 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                     );
                     ReleaseDC(Option::from(window), hdc);
                 }
-                ValidateRect(Option::from(window), None);
+                let _ = ValidateRect(Option::from(window), None);
                 LRESULT(0)
             }
             WM_DESTROY => {

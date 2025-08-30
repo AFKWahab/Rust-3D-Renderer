@@ -272,7 +272,7 @@ impl Mat4x4 {
             }
         }
 
-        result.to_Vec3f()  // Convert back to Vec3f
+        result.to_vec3f()  // Convert back to Vec3f
     }
 
     ///
@@ -308,7 +308,7 @@ impl Mat4x4 {
             }
         }
 
-        result.to_Vec3f()  // Convert back to Vec3f
+        result.to_vec3f()  // Convert back to Vec3f
     }
 
     pub fn look_at(eye: Vec3f, target: Vec3f, up: Vec3f) -> Mat4x4 {

@@ -4,6 +4,7 @@ use crate::math::Vec3f;
 pub struct Triangle {
     pub indices: [usize; 3],  // Indices into vertex array
     pub color: u32,
+    pub material_id: Option<usize>, // Index into materials array
 }
 
 impl Triangle {
@@ -11,6 +12,15 @@ impl Triangle {
         Self {
             indices: [i0, i1, i2],
             color,
+            material_id: None,
+        }
+    }
+
+    pub fn with_material(i0: usize, i1: usize, i2: usize, color: u32, material_id: usize) -> Self {
+        Self {
+            indices: [i0, i1, i2],
+            color,
+            material_id: Some(material_id),
         }
     }
 
@@ -25,6 +35,15 @@ impl Triangle {
     pub fn calculate_normal(&self, mesh: &Mesh) -> Vec3f {
         let (v0, v1, v2) = self.get_vertices(mesh);
         Vec3f::calculate_triangle_normal(v0, v1, v2)
+    }
+
+    pub fn get_center(&self, mesh: &Mesh) -> Vec3f {
+        let (v0, v1, v2) = self.get_vertices(mesh);
+        Vec3f::new(
+            (v0.x + v1.x + v2.x) / 3.0,
+            (v0.y + v1.y + v2.y) / 3.0,
+            (v0.z + v1.z + v2.z) / 3.0,
+        )
     }
 }
 
@@ -53,7 +72,7 @@ impl Mesh {
     pub fn create_cube() -> Self {
         let mut mesh = Self::new();
 
-        // Add vertices
+        // Add vertices - proper winding for outward-facing normals
         let vertices = [
             Vec3f::new(-1.0, -1.0,  1.0), // 0: bottom-left-front
             Vec3f::new( 1.0, -1.0,  1.0), // 1: bottom-right-front
@@ -69,31 +88,31 @@ impl Mesh {
             mesh.add_vertex(vertex);
         }
 
-        // Add triangles with different colors for each face - ALL with proper alpha channel (0xFF)
+        // Add triangles with proper counter-clockwise winding (when viewed from outside)
         let triangles = [
-            // Front face (green)
-            Triangle::new(0, 1, 2, 0xFF00FF00), // Fixed: added FF alpha channel
-            Triangle::new(2, 3, 0, 0xFF00FF00), // Fixed: added FF alpha channel
+            // Front face (z = 1) - normal points toward +Z
+            Triangle::new(0, 1, 2, 0xFF00FF00), // Green
+            Triangle::new(2, 3, 0, 0xFF00FF00),
 
-            // Back face (red)
-            Triangle::new(4, 7, 6, 0xFFFF0000), // Fixed: added FF alpha channel
-            Triangle::new(6, 5, 4, 0xFFFF0000), // Fixed: added FF alpha channel
+            // Back face (z = -1) - normal points toward -Z
+            Triangle::new(5, 4, 7, 0xFFFF0000), // Red
+            Triangle::new(7, 6, 5, 0xFFFF0000),
 
-            // Left face (blue)
-            Triangle::new(4, 0, 3, 0xFF0000FF), // Fixed: added FF alpha channel
-            Triangle::new(3, 7, 4, 0xFF0000FF), // Fixed: added FF alpha channel
+            // Left face (x = -1) - normal points toward -X
+            Triangle::new(4, 0, 3, 0xFF0000FF), // Blue
+            Triangle::new(3, 7, 4, 0xFF0000FF),
 
-            // Right face (yellow)
-            Triangle::new(1, 5, 6, 0xFFFFFF00), // Fixed: added FF alpha channel
-            Triangle::new(6, 2, 1, 0xFFFFFF00), // Fixed: added FF alpha channel
+            // Right face (x = 1) - normal points toward +X
+            Triangle::new(1, 5, 6, 0xFFFFFF00), // Yellow
+            Triangle::new(6, 2, 1, 0xFFFFFF00),
 
-            // Top face (magenta)
-            Triangle::new(3, 2, 6, 0xFFFF00FF), // Fixed: added FF alpha channel
-            Triangle::new(6, 7, 3, 0xFFFF00FF), // Fixed: added FF alpha channel
+            // Top face (y = 1) - normal points toward +Y
+            Triangle::new(3, 2, 6, 0xFFFF00FF), // Magenta
+            Triangle::new(6, 7, 3, 0xFFFF00FF),
 
-            // Bottom face (cyan)
-            Triangle::new(4, 5, 1, 0xFF00FFFF), // Fixed: added FF alpha channel
-            Triangle::new(1, 0, 4, 0xFF00FFFF), // Fixed: added FF alpha channel
+            // Bottom face (y = -1) - normal points toward -Y
+            Triangle::new(4, 5, 1, 0xFF00FFFF), // Cyan
+            Triangle::new(1, 0, 4, 0xFF00FFFF),
         ];
 
         for triangle in triangles {
@@ -106,12 +125,12 @@ impl Mesh {
     pub fn create_triangle() -> Self {
         let mut mesh = Self::new();
 
-        // Simple triangle for testing
+        // Simple triangle for testing - counter-clockwise winding
         mesh.add_vertex(Vec3f::new(0.0, 1.0, 0.0));   // Top
         mesh.add_vertex(Vec3f::new(-1.0, -1.0, 0.0)); // Bottom left
         mesh.add_vertex(Vec3f::new(1.0, -1.0, 0.0));  // Bottom right
 
-        mesh.add_triangle(Triangle::new(0, 1, 2, 0xFFFF0000)); // Fixed: added FF alpha channel
+        mesh.add_triangle(Triangle::new(0, 1, 2, 0xFFFF0000));
 
         mesh
     }
@@ -141,6 +160,16 @@ impl Mesh {
         self.vertices
             .iter()
             .map(|vertex| transform_matrix.multiply_point(vertex))
+            .collect()
+    }
+
+    pub fn transform_normals(&self, normal_matrix: &crate::math::Mat4x4) -> Vec<Vec3f> {
+        self.triangles
+            .iter()
+            .map(|triangle| {
+                let normal = triangle.calculate_normal(self);
+                normal_matrix.multiply_vector(&normal).normalize()
+            })
             .collect()
     }
 }

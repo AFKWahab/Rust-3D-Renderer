@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Sub, Mul, Div, Neg};
 use crate::math::vec3::Vec3f;
 
 pub struct Vec4f {
