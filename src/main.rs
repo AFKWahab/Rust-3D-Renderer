@@ -1,22 +1,23 @@
+use windows::Win32::Graphics::Gdi::{GetDC, ReleaseDC, SetDIBitsToDevice, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS};
 use windows::{
     core::*,
     Win32::Foundation::*,
-    Win32::Graphics::Gdi::{ValidateRect, GetStockObject, WHITE_BRUSH, HBRUSH},
+    Win32::Graphics::Gdi::{GetStockObject, ValidateRect, HBRUSH, WHITE_BRUSH},
     Win32::System::LibraryLoader::GetModuleHandleA,
     Win32::UI::WindowsAndMessaging::*,
 };
-use windows::Win32::Graphics::Gdi::{GetDC, ReleaseDC, SetDIBitsToDevice, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS};
+use Rust_3D_Rasterizer::lighting::Light;
+use Rust_3D_Rasterizer::math::Vec3f;
 use Rust_3D_Rasterizer::renderer::Renderer;
+use Rust_3D_Rasterizer::scene::Scene;
 
 struct WindowData {
-    renderer: Renderer
+    renderer: Renderer,
+    scene: Scene,
 }
-static mut RENDERER: Option<Renderer> = None;
+
 fn main() -> Result<()> {
     unsafe {
-
-        // Initialize renderer
-        RENDERER = Some(Renderer::new(800,600));
         let instance = GetModuleHandleA(None)?;
         let window_class = s!("window");
 
@@ -24,7 +25,6 @@ fn main() -> Result<()> {
             hCursor: LoadCursorW(None, IDC_ARROW)?,
             hInstance: instance.into(),
             lpszClassName: window_class,
-
             style: CS_HREDRAW | CS_VREDRAW,
             hbrBackground: HBRUSH(GetStockObject(WHITE_BRUSH).0),
             lpfnWndProc: Some(wndproc),
@@ -35,10 +35,11 @@ fn main() -> Result<()> {
         if atom == 0 {
             return Err(Error::from_win32());
         }
+
         let hwnd = CreateWindowExA(
             WINDOW_EX_STYLE::default(),
             window_class,
-            s!("This is a sample window"),
+            s!("Adam Game Engine"),
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -54,15 +55,61 @@ fn main() -> Result<()> {
             return Err(Error::from_win32())
         }
 
+        // Create renderer and scene
+        let renderer = Renderer::new(800, 600);
+        let mut scene = Scene::new();
+
+        // Add multiple cubes with different positions
+        scene.add_cube_at(Vec3f::new(-2.0, 0.0, 0.0));
+        scene.add_cube_at(Vec3f::new(2.0, 0.0, 0.0));
+        scene.add_cube_at(Vec3f::new(0.0, 2.0, -2.0));
+
+        // Add multiple lights for dramatic effect
+
+        // Main directional light (key light)
+        scene.add_light(Light::directional(
+            Vec3f::new(-0.5, -1.0, -0.5), // Coming from upper left
+            Vec3f::new(1.0, 0.9, 0.8),    // Warm white
+            0.8
+        ));
+
+        // Fill light (softer, cooler)
+        scene.add_light(Light::directional(
+            Vec3f::new(0.5, 0.0, -1.0),   // Coming from right
+            Vec3f::new(0.6, 0.7, 1.0),    // Cool blue
+            0.4
+        ));
+
+        // Point light for additional interest
+        scene.add_light(Light::point(
+            Vec3f::new(0.0, 4.0, 2.0),    // Above and behind
+            Vec3f::new(1.0, 0.5, 0.2),    // Orange
+            2.0,                          // Bright
+            10.0                          // Range
+        ));
+
+        // Spot light for dramatic shadows
+        scene.add_light(Light::spot(
+            Vec3f::new(-4.0, 3.0, 4.0),   // Position
+            Vec3f::new(1.0, -0.5, -1.0).normalize(), // Direction
+            Vec3f::new(0.9, 0.2, 0.9),    // Purple
+            3.0,                          // Intensity
+            15.0,                         // Range
+            std::f32::consts::PI / 6.0,   // Inner angle (30°)
+            std::f32::consts::PI / 4.0    // Outer angle (45°)
+        ));
+
         let window_data = Box::new(WindowData {
-            renderer: Renderer::new(800, 600),
+            renderer,
+            scene,
         });
 
         SetWindowLongPtrA(hwnd, GWLP_USERDATA, Box::into_raw(window_data) as isize);
+
         // Message loop
         let mut msg = MSG::default();
         while GetMessageA(&mut msg, None, 0, 0).into() {
-            TranslateMessage(&msg);
+            let _ = TranslateMessage(&msg);
             DispatchMessageA(&msg);
         }
         Ok(())
@@ -76,10 +123,16 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 let window_data_ptr = GetWindowLongPtrA(window, GWLP_USERDATA) as *mut WindowData;
                 if !window_data_ptr.is_null() {
                     let window_data = &mut *window_data_ptr;
-                    window_data.renderer.render_frame();
-                    // Create bitmap information for displaying the framebuffer
+
+                    // Update scene (this will rotate the cubes)
+                    window_data.scene.update(0.016); // Assume ~60 FPS
+
+                    // Render the scene
+                    window_data.scene.render(&mut window_data.renderer);
+
+                    // Display the framebuffer
                     let (width, height) = window_data.renderer.get_dimension();
-                    let mut bitmap_info_header = BITMAPINFOHEADER {
+                    let bitmap_info_header = BITMAPINFOHEADER {
                         biSize: size_of::<BITMAPINFOHEADER>() as u32,
                         biWidth: width as i32,
                         biHeight: -(height as i32),
@@ -95,22 +148,21 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
 
                     let hdc = GetDC(Option::from(window));
                     SetDIBitsToDevice(
-                        hdc, // "Where to draw" the windows device context
-                        0, 0, // Where in the window to start drawing (0,0) = top left corner
-                        width, height, // How big of an area to draw
-                        0, 0, // Where in the source image to start reading (0,0) = start from top left of pixel array
-                        0, height, // Which rows of pixels to use, StartScan: 0 = start from row 0, cLines: height = use all height rows
+                        hdc,
+                        0, 0,
+                        width, height,
+                        0, 0,
+                        0, height,
                         window_data.renderer.get_framebuffer().as_ptr() as *const _,
                         &bitmap_info,
                         DIB_RGB_COLORS,
                     );
                     ReleaseDC(Option::from(window), hdc);
                 }
-                ValidateRect(Option::from(window), None);
+                let _ = ValidateRect(Option::from(window), None);
                 LRESULT(0)
             }
             WM_DESTROY => {
-                println!("WM_DESTROY");
                 let window_data_ptr = GetWindowLongPtrA(window, GWLP_USERDATA) as *mut WindowData;
                 if !window_data_ptr.is_null() {
                     let _ = Box::from_raw(window_data_ptr); // This will drop and clean up

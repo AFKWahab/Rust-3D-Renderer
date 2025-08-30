@@ -1,6 +1,6 @@
 use std::ops::{Add, Sub, Mul, Div};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]  // Added Copy and Clone traits
 pub struct Vec2f {
     pub x: f32,
     pub y: f32
@@ -17,17 +17,22 @@ impl Vec2f {
 
     pub fn normalize(&self) -> Vec2f {
         let len = self.length();
-        let x = self.x / len;
-        let y = self.y / len;
-        Vec2f { x, y }
+        if len > 0.0 {
+            Vec2f { x: self.x / len, y: self.y / len }
+        } else {
+            *self
+        }
     }
 
     pub fn dot(&self, other: &Vec2f) -> f32 {
         self.x * other.x + self.y * other.y
     }
+
+    /// Zero vector
+    pub fn zero() -> Vec2f {
+        Vec2f::new(0.0, 0.0)
+    }
 }
-
-
 
 impl Add for Vec2f {
     type Output = Vec2f;

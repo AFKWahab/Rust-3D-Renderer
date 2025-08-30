@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Sub, Mul, Div, Neg};
 use crate::math::vec3::Vec3f;
 
 pub struct Vec4f {
@@ -39,8 +39,12 @@ impl Vec4f {
         Vec4f::new(vec3.x, vec3.y, vec3.z, 0.0)
     }
 
-    pub fn to_Vec3f(&self) -> Vec3f {
-        Vec3f::new(self.x, self.y, self.z)
+    pub fn to_vec3f(&self) -> Vec3f {
+        if self.w != 0.0 && self.w != 1.0 {
+            Vec3f::new(self.x / self.w, self.y / self.w, self.z / self.w)
+        } else {
+            Vec3f::new(self.x, self.y, self.z)
+        }
     }
 }
 

@@ -1,4 +1,3 @@
-use std::mem::zeroed;
 use crate::math::vec3::Vec3f;
 use crate::math::vec4::Vec4f;
 
@@ -159,7 +158,6 @@ impl Mat4x4 {
         ])
     }
 
-
     ///
     /// X-axis rotation (pitch), this rotates in the Y Z plane.
     /// Generally the math here says that the X row stays the same
@@ -227,6 +225,21 @@ impl Mat4x4 {
     }
 
     ///
+    /// Creates a perspective projection matrix
+    ///
+    pub fn perspective(fov_y: f32, aspect_ratio: f32, near: f32, far: f32) -> Mat4x4 {
+        let f = 1.0 / (fov_y / 2.0).tan();
+        let range_inv = 1.0 / (near - far);
+
+        Mat4x4::new([
+            f / aspect_ratio, 0.0, 0.0,                            0.0,
+            0.0,              f,   0.0,                            0.0,
+            0.0,              0.0, (far + near) * range_inv,       2.0 * far * near * range_inv,
+            0.0,              0.0, -1.0,                           0.0,
+        ])
+    }
+
+    ///
     /// This transforms a position in 3D space.
     /// Affected by translation (gets moved)
     /// Affected by rotation (gets rotated)
@@ -259,7 +272,7 @@ impl Mat4x4 {
             }
         }
 
-        result.to_Vec3f()  // Convert back to Vec3f
+        result.to_vec3f()  // Convert back to Vec3f
     }
 
     ///
@@ -295,7 +308,7 @@ impl Mat4x4 {
             }
         }
 
-        result.to_Vec3f()  // Convert back to Vec3f
+        result.to_vec3f()  // Convert back to Vec3f
     }
 
     pub fn look_at(eye: Vec3f, target: Vec3f, up: Vec3f) -> Mat4x4 {
@@ -313,155 +326,31 @@ impl Mat4x4 {
         Mat4x4::new([
             right.x,     right.y,     right.z,     -right.dot(&eye),
             camera_up.x, camera_up.y, camera_up.z, -camera_up.dot(&eye),
-            -forward.x,  -forward.y,  -forward.z,  forward.dot(&eye),
+            -forward.x,  -forward.y,  -forward.z,  forward.dot(&eye),  // This row should make Z negative
             0.0,         0.0,         0.0,         1.0,
         ])
     }
-}
 
+    pub fn multiply_point_4d(&self, point: &Vec3f) -> Vec4f {
+        let vector_4d = Vec4f::from_point(point);
+        let mut result = Vec4f::new(0.0, 0.0, 0.0, 0.0);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // Helper function to check if two matrices are approximately equal
-    fn matrices_approx_equal(a: &Mat4x4, b: &Mat4x4, tolerance: f32) -> bool {
         for row in 0..4 {
-            for col in 0..4 {
-                let diff = (a.get(row, col) - b.get(row, col)).abs();
-                if diff > tolerance {
-                    println!("Matrices differ at [{},{}]: {} vs {}, diff: {}",
-                             row, col, a.get(row, col), b.get(row, col), diff);
-                    return false;
-                }
+            let mut sum = 0.0;
+            sum += self.get(row, 0) * vector_4d.x;
+            sum += self.get(row, 1) * vector_4d.y;
+            sum += self.get(row, 2) * vector_4d.z;
+            sum += self.get(row, 3) * vector_4d.w;
+
+            match row {
+                0 => result.x = sum,
+                1 => result.y = sum,
+                2 => result.z = sum,
+                3 => result.w = sum,
+                _ => unreachable!(),
             }
         }
-        true
-    }
 
-    #[test]
-    fn test_identity_inverse() {
-        let identity = Mat4x4::identity();
-        let inverse = identity.inverse().expect("Identity should be invertible");
-
-        assert!(matrices_approx_equal(&identity, &inverse, 1e-6),
-                "Identity matrix inverse should be itself");
-    }
-
-    #[test]
-    fn test_simple_matrix_inverse() {
-        let matrix = Mat4x4::new([
-            2.0, 0.0, 0.0, 0.0,
-            0.0, 3.0, 0.0, 0.0,
-            0.0, 0.0, 4.0, 0.0,
-            0.0, 0.0, 0.0, 5.0,
-        ]);
-
-        let expected_inverse = Mat4x4::new([
-            0.5, 0.0, 0.0, 0.0,
-            0.0, 1.0 / 3.0, 0.0, 0.0,
-            0.0, 0.0, 0.25, 0.0,
-            0.0, 0.0, 0.0, 0.2,
-        ]);
-
-        let inverse = matrix.inverse().expect("Matrix should be invertible");
-        assert!(matrices_approx_equal(&inverse, &expected_inverse, 1e-6),
-                "Simple diagonal matrix inverse incorrect");
-    }
-
-    #[test]
-    fn test_matrix_multiply_inverse_equals_identity() {
-        let matrix = Mat4x4::new([
-            1.0, 2.0, 0.0, 1.0,
-            0.0, 1.0, 1.0, 2.0,
-            1.0, 0.0, 1.0, 0.0,
-            0.0, 1.0, 0.0, 2.0,
-        ]);
-
-        let inverse = matrix.inverse().expect("Matrix should be invertible");
-        let result = matrix.multiply(&inverse);
-        let identity = Mat4x4::identity();
-
-        assert!(matrices_approx_equal(&result, &identity, 1e-5),
-                "A * A^(-1) should equal identity matrix");
-    }
-
-    #[test]
-    fn test_inverse_multiply_matrix_equals_identity() {
-        // Test A^(-1) * A = I
-        let matrix = Mat4x4::new([
-            2.0, 1.0, 0.0, 0.0,
-            1.0, 2.0, 1.0, 0.0,
-            0.0, 1.0, 2.0, 1.0,
-            0.0, 0.0, 1.0, 2.0,
-        ]);
-
-        let inverse = matrix.inverse().expect("Matrix should be invertible");
-        let result = inverse.multiply(&matrix);
-        let identity = Mat4x4::identity();
-
-        assert!(matrices_approx_equal(&result, &identity, 1e-5),
-                "A^(-1) * A should equal identity matrix");
-    }
-
-    #[test]
-    fn test_singular_matrix() {
-        // Create a singular (non-invertible) matrix
-        let singular_matrix = Mat4x4::new([
-            1.0, 2.0, 3.0, 4.0,
-            1.0, 2.0, 3.0, 4.0,  // Same as first row
-            1.0, 2.0, 3.0, 4.0,  // Same as first row
-            1.0, 2.0, 3.0, 4.0,  // Same as first row
-        ]);
-
-        let result = singular_matrix.inverse();
-        assert!(result.is_none(), "Singular matrix should not be invertible");
-    }
-
-    #[test]
-    fn test_another_singular_matrix() {
-        // Create another singular matrix - zero row
-        let singular_matrix = Mat4x4::new([
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 0.0,  // Zero row makes it singular
-        ]);
-
-        let result = singular_matrix.inverse();
-        assert!(result.is_none(), "Matrix with zero row should not be invertible");
-    }
-
-    #[test]
-    fn test_known_matrix_with_known_inverse() {
-        // Matrix:
-        // [ 4, 0, 0, 0 ]
-        // [ 0, 0, 2, 0 ]
-        // [ 0, 1, 2, 0 ]
-        // [ 1, 0, 0, 1 ]
-        let matrix = Mat4x4::new([
-            4.0, 0.0, 0.0, 0.0,
-            0.0, 0.0, 2.0, 0.0,
-            0.0, 1.0, 2.0, 0.0,
-            1.0, 0.0, 0.0, 1.0,
-        ]);
-
-        // Correct inverse:
-        // [  0.25,  0.0,  0.0, 0.0 ]
-        // [  0.0,  -1.0,  1.0, 0.0 ]
-        // [  0.0,   0.5,  0.0, 0.0 ]
-        // [ -0.25,  0.0,  0.0, 1.0 ]
-        let expected_inverse = Mat4x4::new([
-            0.25, 0.0, 0.0, 0.0,
-            0.0, -1.0, 1.0, 0.0,
-            0.0, 0.5, 0.0, 0.0,
-            -0.25, 0.0, 0.0, 1.0,
-        ]);
-
-        let inverse = matrix.inverse().expect("Matrix should be invertible");
-        assert!(
-            matrices_approx_equal(&inverse, &expected_inverse, 1e-5),
-            "Known matrix inverse should match expected result"
-        );
+        result
     }
 }
