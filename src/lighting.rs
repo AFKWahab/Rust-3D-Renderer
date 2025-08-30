@@ -57,7 +57,7 @@ impl LightingSystem {
     pub fn new() -> Self {
         Self {
             lights: Vec::new(),
-            ambient_intensity: 0.2,
+            ambient_intensity: 0.05,
         }
     }
 

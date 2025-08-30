@@ -67,9 +67,9 @@ fn main() -> Result<()> {
 
         // Add a light from a different angle
         scene.add_light(Light::new(
-            Vec3f::new(1.0, 1.0, 1.0),   // Light coming from front-top-right
-            Vec3f::new(1.0, 1.0, 1.0),   // Pure white light
-            0.6  // Lower intensity so we don't hit the cap
+            Vec3f::new(0.0, 0.0, -1.0),  // Light pointing straight at front face
+            Vec3f::new(1.0, 1.0, 1.0),
+            0.8
         ));
 
         let window_data = Box::new(WindowData {

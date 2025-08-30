@@ -55,6 +55,7 @@ pub struct Scene {
 
 impl Scene {
     pub fn new() -> Self {
+        let lighting = LightingSystem::new();
         Self {
             game_objects_count: 0,
             camera: Camera::look_at(
