@@ -303,11 +303,10 @@ CPU sends commands to GPU → GPU calculates pixels → GPU renders directly to 
 ### Foundation (Immediate Priorities)
 
 #### Input System
-- [ ] WASD camera movement with proper delta time
-- [ ] Mouse look with configurable sensitivity settings
-- [ ] Keyboard state management for smooth movement
-- [ ] Mouse capture/release toggle (escape key)
-- [ ] Gamepad support for movement controls
+- [x] WASD camera movement with proper delta time
+- [x] Mouse look with configurable sensitivity settings
+- [x] Keyboard state management for smooth movement
+- [x] Mouse capture/release toggle (escape key)
 
 #### Asset Loading
 - [ ] OBJ file parser for loading 3D models
